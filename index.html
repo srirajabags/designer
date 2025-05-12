@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photopea API Integration</title>
+    <style>
+        body { font-family: sans-serif; display: flex; margin: 0; height: 100vh; overflow: hidden; }
+        .controls { width: 350px; padding: 15px; overflow-y: auto; border-right: 1px solid #ccc; background-color: #f8f9fa; }
+        .photopea-container { flex-grow: 1; display: flex; flex-direction: column; }
+        #photopeaEmbed { width: 100%; height: 70%; border: none; }
+        .preview-container { padding: 10px; text-align: center; background-color: #e9ecef; }
+        #previewImage { max-width: 100%; border: 1px solid #ccc; margin-top: 10px; }
+        .control-group { margin-bottom: 20px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background-color: #fff; }
+        .control-group h3 { margin-top: 0; font-size: 1.1em; color: #333; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        select, input[type="text"], input[type="url"], input[type="number"], input[type="color"] {
+            width: calc(100% - 12px);
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        button:hover { background-color: #0056b3; }
+        .inline-inputs label { display: inline-block; margin-right: 5px; }
+        .inline-inputs input { width: auto; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h2>Photopea Controls</h2>
+
+        <div class="control-group">
+            <h3>Project Size</h3>
+            <label for="projectWidth">Width:</label>
+            <input type="number" id="projectWidth" value="1920">
+            <label for="projectHeight">Height:</label>
+            <input type="number" id="projectHeight" value="1080">
+            <button onclick="setProjectSize()">Set Project Size</button>
+        </div>
+
+        <div class="control-group">
+            <h3>1. Background Layer</h3>
+            <label for="backgroundSelect">Choose Background:</label>
+            <select id="backgroundSelect">
+                <option value="">-- Select Background --</option>
+                <option value="https://via.placeholder.com/1920x1080/FF0000/FFFFFF?Text=Background1">Red Landscape</option>
+                <option value="https://via.placeholder.com/1920x1080/00FF00/000000?Text=Background2">Green Nature</option>
+                <option value="https://via.placeholder.com/1920x1080/0000FF/FFFFFF?Text=Background3">Blue Abstract</option>
+            </select>
+            <button onclick="setupBackground()">Set Background</button>
+        </div>
+
+        <div class="control-group">
+            <h3>2. Props/Graphics Layer</h3>
+            <label for="propSelect">Choose Prop:</label>
+            <select id="propSelect">
+                <option value="">-- Select Prop --</option>
+                <option value="https://via.placeholder.com/300x300/FFFF00/000000?Text=Prop1">Yellow Star</option>
+                <option value="https://via.placeholder.com/250x250/FF00FF/FFFFFF?Text=Prop2">Magenta Circle</option>
+            </select>
+            <label for="propX">X Position:</label>
+            <input type="number" id="propX" value="50">
+            <label for="propY">Y Position:</label>
+            <input type="number" id="propY" value="50">
+            <button onclick="addProp()">Add Prop</button>
+        </div>
+
+        <div class="control-group">
+            <h3>3. Logo Layer</h3>
+            <label for="logoUrl">Logo Image URL:</label>
+            <input type="url" id="logoUrl" placeholder="https://example.com/logo.png" value="https://via.placeholder.com/150x150/000000/FFFFFF?Text=LOGO">
+            <label for="logoX">X Position:</label>
+            <input type="number" id="logoX" value="700">
+            <label for="logoY">Y Position:</label>
+            <input type="number" id="logoY" value="50">
+            <button onclick="addLogo()">Add Logo</button>
+        </div>
+
+        <div class="control-group">
+            <h3>4. Personalised Text Data</h3>
+            <div>
+                <label for="fontSelect">Choose Font:</label>
+                <select id="fontSelect">
+                    <option value="Arial">Arial</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Roboto">Roboto</option> <option value="Montserrat">Montserrat</option> <option value="Open Sans">Open Sans</option> </select>
+            </div>
+            <div>
+                <label for="textColor">Text Color:</label>
+                <input type="color" id="textColor" value="#000000">
+            </div>
+
+            <label for="textName">Name:</label>
+            <input type="text" id="textName" value="John Doe">
+            <button onclick="addOrUpdateText('Name', document.getElementById('textName').value, 100, 50, 100)">Set Name</button>
+
+            <label for="textTitle">Title:</label>
+            <input type="text" id="textTitle" value="Graphic Designer">
+            <button onclick="addOrUpdateText('Title', document.getElementById('textTitle').value, 70, 50, 220)">Set Title</button>
+
+            <label for="textCaption">Caption/Tagline:</label>
+            <input type="text" id="textCaption" value="Creating visuals that inspire.">
+            <button onclick="addOrUpdateText('Caption', document.getElementById('textCaption').value, 50, 50, 300)">Set Caption</button>
+
+            <label for="textAddress">Address:</label>
+            <input type="text" id="textAddress" value="123 Design St, Art City, AC 45678">
+            <button onclick="addOrUpdateText('Address', document.getElementById('textAddress').value, 40, 50, 380)">Set Address</button>
+
+            <label for="textContact">Contact (Email/Phone):</label>
+            <input type="text" id="textContact" value="john.doe@example.com | (555) 123-4567">
+            <button onclick="addOrUpdateText('Contact', document.getElementById('textContact').value, 40, 50, 450)">Set Contact</button>
+        </div>
+
+        <div class="control-group">
+            <h3>Preview</h3>
+            <button onclick="generatePreview()">Generate & Show Preview</button>
+        </div>
+    </div>
+
+    <div class="photopea-container">
+        <button onclick="togglePhotopeaPreview()">Toggle Photopea/Preview</button>
+        <div class="preview-container">
+            <h4>Live Preview Area</h4>
+            <img id="previewImage" src="#" alt="Preview will appear here">
+        </div>
+        <iframe id="photopeaEmbed" src="https://www.photopea.com" style="display: none;"></iframe>
+    </div>
+
+    <script>
+        const photopeaEmbed = document.getElementById('photopeaEmbed');
+        const previewImage = document.getElementById('previewImage');
+        let photopeaReady = false;
+        let currentDocWidth = 1920; // Default, will try to get from background
+        let currentDocHeight = 1080; // Default
+
+        // Wait for Photopea to be ready
+        photopeaEmbed.onload = function() {
+            // A small delay to ensure Photopea's API is responsive
+            // setTimeout(() => {
+                photopeaReady = true;
+                console.log("Photopea is ready.");
+                // Auto-create a new project if none exists and get initial dimensions
+                runScript(`
+                    if (app.documents.length == 0) {
+                        app.documents.add(${currentDocWidth}, ${currentDocHeight}, 72, "InitialProject", "rgb", "white", "srgb");
+                        app.echoToOE("initialProjectCreated");
+                    } else {
+                        app.echoToOE("existingProjectFound");
+                    }
+                    // Always try to get current document dimensions on load
+                    if (app.documents.length > 0 && app.activeDocument) {
+                         var doc = app.activeDocument;
+                         app.echoToOE("docDimensions:" + doc.width.as('px') + ":" + doc.height.as('px'));
+                    }
+                `);
+            // }, 2000);
+        };
+
+        // Function to toggle Photopea/Preview visibility
+        function togglePhotopeaPreview() {
+            const photopeaContainer = document.querySelector('#photopeaEmbed');
+            const previewContainer = document.querySelector('.preview-container');
+            if (photopeaContainer.style.display === 'none') {
+                photopeaContainer.style.display = 'flex';
+                previewContainer.style.display = 'none';
+            } else {
+                photopeaContainer.style.display = 'none';
+                previewContainer.style.display = 'block';
+            }
+        }
+
+        // Function to send scripts to Photopea
+        function runScript(script) {
+            if (!photopeaReady) {
+                alert("Photopea is not ready yet. Please wait a moment.");
+                return;
+            }
+            console.log("Running script:", script);
+            photopeaEmbed.contentWindow.postMessage(script, "*");
+        }
+
+        // 1. Setup Background Layer
+        function setupBackground() {
+            const imageUrl = document.getElementById('backgroundSelect').value;
+            if (!imageUrl) {
+                alert("Please select a background image.");
+                return;
+            }
+            if (!photopeaReady) { // Explicit check here
+                alert("Photopea is not ready yet. Please wait a moment.");
+                return;
+            }
+
+            const script = `
+                app.echoToOE("setupBackground:ScriptStart");
+                var doc = app.activeDocument;
+                if (!doc) {
+                    app.echoToOE("setupBackground:NoActiveDocInitially,AttemptingCreate");
+                    doc = app.documents.add(${currentDocWidth}, ${currentDocHeight}, 72, "AutoDocForBg", "rgb", "white", "srgb");
+                    if (!doc) {
+                        app.echoToOE("backgroundError:NoActiveDocAndCouldNotCreate");
+                        return; // Stop script execution
+                    }
+                    app.activeDocument = doc; // Make sure it's active
+                    app.echoToOE("setupBackground:AutoCreatedDocAndSetActive");
+                } else {
+                    app.echoToOE("setupBackground:ActiveDocFoundInitially Name:" + doc.name);
+                }
+
+                try {
+                    var existingBgLayer = doc.layers.getByName("Background");
+                    if (existingBgLayer) {
+                        existingBgLayer.remove();
+                        app.echoToOE("setupBackground:RemovedExistingBgLayer");
+                    }
+                } catch (e) {
+                    app.echoToOE("setupBackground:NoExistingBgLayerToRemove (Normal)");
+                }
+
+                app.echoToOE("setupBackground:AttemptingToOpenImageURL: ${imageUrl}");
+                var newBgLayer = null;
+                try {
+                    newBgLayer = app.open("${imageUrl}", undefined, true); // as smart object
+                } catch(e) {
+                    app.echoToOE("backgroundError:app.openCrashedForImage: " + e.toString());
+                    return;
+                }
+                
+                if (newBgLayer && newBgLayer.typename === "ArtLayer") {
+                    app.echoToOE("setupBackground:ImageOpenedAsLayer Name:" + newBgLayer.name + " ID:" + newBgLayer.id);
+                    newBgLayer.name = "Background";
+
+                    var bnds = newBgLayer.bounds; // [x1, y1, x2, y2]
+                    var layerPixelWidth = bnds[2].as('px') - bnds[0].as('px');
+                    var layerPixelHeight = bnds[3].as('px') - bnds[1].as('px');
+                    app.echoToOE("setupBackground:LayerInitialBounds W:" + layerPixelWidth + " H:" + layerPixelHeight + " X1:" + bnds[0].as('px') + " Y1:" + bnds[1].as('px'));
+
+                    if (layerPixelWidth > 0 && layerPixelHeight > 0) {
+                        doc.resizeCanvas(layerPixelWidth, layerPixelHeight, AnchorPosition.MIDDLECENTER);
+                        app.echoToOE("setupBackground:CanvasResizedTo W:" + layerPixelWidth + " H:" + layerPixelHeight);
+                        
+                        // After resize, layer's content is still at same abs position,
+                        // but its bounds relative to new canvas origin will change.
+                        // We need to get the *new* bounds to translate it to 0,0 of the *new* canvas.
+                        var currentBounds = newBgLayer.bounds; // Get bounds *after* canvas resize
+                        newBgLayer.translate(-currentBounds[0].as('px'), -currentBounds[1].as('px'));
+                        app.echoToOE("setupBackground:LayerTranslatedToOrigin BasedOnNewBounds X:" + (-currentBounds[0].as('px')) + " Y:" + (-currentBounds[1].as('px')));
+                        
+                        newBgLayer.move(doc, ElementPlacement.PLACEATBEGINNING);
+                        app.echoToOE("setupBackground:LayerMovedToBeginning");
+                        
+                        app.echoToOE("backgroundSetAndResized:" + layerPixelWidth + ":" + layerPixelHeight);
+                    } else {
+                        app.echoToOE("backgroundError:ImageDimensionsZeroOrInvalid W:" + layerPixelWidth + " H:" + layerPixelHeight);
+                        if(newBgLayer.remove) newBgLayer.remove(); // Clean up
+                    }
+                } else {
+                    app.echoToOE("backgroundError:app.openReturnedNullOrNotArtLayerForImage. Type: " + (newBgLayer ? newBgLayer.typename : "null"));
+                }
+                app.echoToOE("setupBackground:ScriptEnd");
+            `;
+            runScript(script);
+        }
+
+        // New function to set project size
+        function setProjectSize() {
+            const width = parseInt(document.getElementById('projectWidth').value) || 1920;
+            const height = parseInt(document.getElementById('projectHeight').value) || 1080;
+
+            const script = `
+                var doc = app.activeDocument;
+                if (!doc) {
+                    app.echoToOE("setProjectSizeError:NoActiveDocument");
+                }
+                doc.resizeCanvas(${width}, ${height}, AnchorPosition.TOPLEFT);
+                app.echoToOE("projectSizeChanged:" + ${width} + ":" + ${height});
+            `;
+            runScript(script);
+        }
+
+        // 2. Setup Props/Graphics Layer
+        function addProp() {
+            const propUrl = document.getElementById('propSelect').value;
+            if (!propUrl) {
+                alert("Please select a prop.");
+                return;
+            }
+            const x = parseInt(document.getElementById('propX').value) || 50;
+            const y = parseInt(document.getElementById('propY').value) || 50;
+
+            const script = `
+                app.echoToOE("addProp:ScriptStart URL:${propUrl} X:${x} Y:${y}");
+                var doc = app.activeDocument;
+                if (!doc) {
+                    app.echoToOE("propError:NoActiveDocument");
+                    return;
+                }
+                app.echoToOE("addProp:ActiveDocFound Name:" + doc.name);
+
+                var newLayer = null;
+                try {
+                    newLayer = app.open("${propUrl}", undefined, true); // as smart object
+                } catch(e) {
+                    app.echoToOE("propError:app.openCrashedForProp: " + e.toString());
+                    return;
+                }
+
+                if (newLayer && newLayer.typename === "ArtLayer") {
+                    app.echoToOE("addProp:PropOpenedAsLayer Name:" + newLayer.name + " ID:" + newLayer.id);
+                    newLayer.name = "Prop_" + Date.now();
+                    
+                    // Get layer's original top-left corner in document coordinates
+                    var bnds = newLayer.bounds;
+                    var layerOriginX = bnds[0].as('px');
+                    var layerOriginY = bnds[1].as('px');
+                    app.echoToOE("addProp:LayerInitialBounds X1:" + layerOriginX + " Y1:" + layerOriginY);
+
+                    // Translate the layer so its top-left corner is at the target X, Y
+                    var deltaX = ${x} - layerOriginX;
+                    var deltaY = ${y} - layerOriginY;
+                    newLayer.translate(deltaX, deltaY);
+                    app.echoToOE("addProp:LayerTranslatedBy DX:" + deltaX + " DY:" + deltaY + ". NewTopLeftShouldBe X:" + ${x} + " Y:" + ${y});
+                    
+                    app.echoToOE("propAdded:" + newLayer.name);
+                } else {
+                    app.echoToOE("propError:app.openReturnedNullOrNotArtLayerForProp. Type: " + (newLayer ? newLayer.typename : "null"));
+                }
+                app.echoToOE("addProp:ScriptEnd");
+            `;
+            runScript(script);
+        }
+
+        // 3. Setup Logo Layer
+        function addLogo() {
+            const logoUrl = document.getElementById('logoUrl').value;
+            if (!logoUrl) {
+                alert("Please provide a logo image URL.");
+                return;
+            }
+            const x = parseInt(document.getElementById('logoX').value) || (currentDocWidth - 200);
+            const y = parseInt(document.getElementById('logoY').value) || 50;
+
+            const script = `
+                app.echoToOE("addLogo:ScriptStart URL:${logoUrl} X:${x} Y:${y}");
+                var doc = app.activeDocument;
+                if (!doc) {
+                    app.echoToOE("logoError:NoActiveDocument");
+                    return;
+                }
+                app.echoToOE("addLogo:ActiveDocFound Name:" + doc.name);
+
+                var newLayer = null;
+                try {
+                    newLayer = app.open("${logoUrl}", undefined, true); // as smart object
+                } catch(e) {
+                    app.echoToOE("logoError:app.openCrashedForLogo: " + e.toString());
+                    return;
+                }
+
+                if (newLayer && newLayer.typename === "ArtLayer") {
+                    app.echoToOE("addLogo:LogoOpenedAsLayer Name:" + newLayer.name + " ID:" + newLayer.id);
+                    newLayer.name = "Logo"; // Keep a consistent name for the logo
+                    
+                    var bnds = newLayer.bounds;
+                    var layerOriginX = bnds[0].as('px');
+                    var layerOriginY = bnds[1].as('px');
+                    app.echoToOE("addLogo:LayerInitialBounds X1:" + layerOriginX + " Y1:" + layerOriginY);
+
+                    var deltaX = ${x} - layerOriginX;
+                    var deltaY = ${y} - layerOriginY;
+                    newLayer.translate(deltaX, deltaY);
+                    app.echoToOE("addLogo:LayerTranslatedBy DX:" + deltaX + " DY:" + deltaY + ". NewTopLeftShouldBe X:" + ${x} + " Y:" + ${y});
+                    
+                    app.echoToOE("logoAdded:" + newLayer.name);
+                } else {
+                    app.echoToOE("logoError:app.openReturnedNullOrNotArtLayerForLogo. Type: " + (newLayer ? newLayer.typename : "null"));
+                }
+                app.echoToOE("addLogo:ScriptEnd");
+            `;
+            runScript(script);
+        }
+
+        // 4. Setup Personalised Text Data
+        function addOrUpdateText(layerNamePrefix, textContent, fontSize, x, y) {
+            if (!textContent.trim()) {
+                // If text is empty, consider removing the layer or not adding it
+                // For now, we just won't add an empty text layer.
+                // If updating to empty, it could hide or delete the layer.
+                // For simplicity, we'll just avoid adding empty text.
+                console.log(`Skipping empty text for ${layerNamePrefix}`);
+                return;
+            }
+
+            const fontName = document.getElementById('fontSelect').value;
+            const textColorHex = document.getElementById('textColor').value;
+            const r = parseInt(textColorHex.slice(1, 3), 16);
+            const g = parseInt(textColorHex.slice(3, 5), 16);
+            const b = parseInt(textColorHex.slice(5, 7), 16);
+
+            const uniqueLayerName = `Text_${layerNamePrefix}`;
+
+            // Sanitize textContent for script
+            const sanitizedTextContent = textContent.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+
+            // This script tries to find an existing layer by name and update it.
+            // If not found, it creates a new text layer.
+            const script = `
+                var doc = app.activeDocument;
+                var textLayer = null;
+                try {
+                    textLayer = doc.layers.getByName("${uniqueLayerName}");
+                } catch (e) {
+                    // Layer does not exist
+                }
+
+                if (textLayer && textLayer.kind == LayerKind.TEXT) {
+                    textLayer.textItem.contents = "${sanitizedTextContent}";
+                    textLayer.textItem.size = ${fontSize};
+                    textLayer.textItem.font = "${fontName}";
+                    var newColor = new SolidColor();
+                    newColor.rgb.red = ${r};
+                    newColor.rgb.green = ${g};
+                    newColor.rgb.blue = ${b};
+                    textLayer.textItem.color = newColor;
+                    // textLayer.translate(${x} - textLayer.bounds.x1, ${y} - textLayer.bounds.y1); // Re-position if needed
+                    app.echoToOE("${uniqueLayerName} updated");
+                } else {
+                    var newTextLayer = doc.artLayers.add();
+                    newTextLayer.kind = LayerKind.TEXT;
+                    newTextLayer.name = "${uniqueLayerName}";
+                    newTextLayer.textItem.contents = "${sanitizedTextContent}";
+                    newTextLayer.textItem.size = ${fontSize};
+                    newTextLayer.textItem.font = "${fontName}";
+                    var textColor = new SolidColor();
+                    textColor.rgb.red = ${r};
+                    textColor.rgb.green = ${g};
+                    textColor.rgb.blue = ${b};
+                    newTextLayer.textItem.color = textColor;
+                    newTextLayer.textItem.position = [${x}, ${y + fontSize}]; // Photopea Y is baseline
+                    app.echoToOE("${uniqueLayerName} added");
+                }
+            `;
+            runScript(script);
+            generatePreview()
+        }
+
+
+        // Preview Generation
+        function generatePreview() {
+            // Ask Photopea to export the current document as a PNG image data URL
+            // Using "image/png" for better quality for graphics, "image/jpeg" for photos
+            const script = `app.activeDocument.saveToOE("png");`;
+            runScript(script);
+        }
+
+        // Listen for messages from Photopea
+        window.addEventListener("message", function(event) {
+            // It's good practice to check event.origin for security,
+            // but for this local example with Photopea.com, we'll be less strict.
+            // if (event.origin !== "https://www.photopea.com") return;
+
+            console.log("Message from Photopea:", event.data);
+
+            if (event.data instanceof ArrayBuffer) { // Binary data for image
+                // Convert ArrayBuffer to Blob, then to Data URL
+                var blob = new Blob([event.data], { type: "image/png" }); // Or "image/jpeg" if you requested that
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewImage.style.display = 'block';
+                };
+                reader.readAsDataURL(blob);
+                console.log("Preview image data received and processed.");
+            } else if (typeof event.data === 'string') {
+                console.log("String message from Photopea:", event.data); // More generic log
+
+                if (event.data === "initialProjectCreated") {
+                    console.log("Initial project created by onload script.");
+                    // Dimensions will be set by the docDimensions call in onload
+                } else if (event.data === "existingProjectFound") {
+                    console.log("Existing project found by onload script.");
+                    // Dimensions will be set by the docDimensions call in onload
+                } else if (event.data.startsWith("docDimensions:")) {
+                    const parts = event.data.split(":");
+                    if (parts.length === 3) {
+                        currentDocWidth = parseFloat(parts[1]);
+                        currentDocHeight = parseFloat(parts[2]);
+                        console.log(`Document dimensions updated via docDimensions: ${currentDocWidth}x${currentDocHeight}`);
+                    }
+                } else if (event.data.startsWith("backgroundSetAndResized:")) {
+                    console.log("Background layer set and document resized.");
+                    const parts = event.data.split(":");
+                    if (parts.length === 3) {
+                        currentDocWidth = parseFloat(parts[1]);
+                        currentDocHeight = parseFloat(parts[2]);
+                        console.log(`Document dimensions updated to background: ${currentDocWidth}x${currentDocHeight}`);
+                        // generatePreview(); // Optionally trigger preview
+                    }
+                } else if (event.data.startsWith("backgroundError:")) {
+                    console.error("Photopea Background Error:", event.data);
+                    alert("Error from Photopea (Background): " + event.data);
+                } else if (event.data.startsWith("propAdded") || event.data.startsWith("logoAdded") || event.data.includes("added") || event.data.includes("updated")) {
+                    console.log("Photopea action confirmed:", event.data);
+                    // generatePreview(); // Careful with auto-preview
+                } else if (event.data.startsWith("propError") || event.data.startsWith("logoError")) {
+                    console.error("Photopea Error:", event.data);
+                    alert("Error from Photopea: " + event.data);
+                } else if (event.data === "done") {
+                    console.log("Photopea script execution finished (generic 'done').");
+                }
+                // Add other specific string message handlers here if needed
+            }
+        });
+
+        // Initial clear of preview
+        previewImage.style.display = 'none';
+    </script>
+
+</body>
+</html>
