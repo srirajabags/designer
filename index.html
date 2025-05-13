@@ -5,12 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Photopea API Integration</title>
     <style>
-        body { font-family: sans-serif; display: flex; margin: 0; height: 100vh; overflow: hidden; }
-        .controls { width: 350px; padding: 15px; overflow-y: auto; border-right: 1px solid #ccc; background-color: #f8f9fa; }
-        .photopea-container { flex-grow: 1; display: flex; flex-direction: column; }
-        #photopeaEmbed { width: 100%; height: 70%; border: none; }
-        .preview-container { padding: 10px; text-align: center; background-color: #e9ecef; }
-        #previewImage { max-width: 100%; border: 1px solid #ccc; margin-top: 10px; }
+        body { font-family: sans-serif; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .photopea-container { display: flex; flex-direction: column; height: 50vh; }
+        #photopeaEmbed { width: 100%; height: 100%; border: none; }
+        .preview-container { padding: 10px; text-align: center; background-color: #e9ecef; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+        #previewImage { max-width: 100%; border: 1px solid #ccc; }
+        .controls { padding: 15px; overflow-y: auto; border-top: 1px solid #ccc; background-color: #f8f9fa; flex-grow: 1; }
+        .control-group { margin-bottom: 20px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background-color: #fff; }
+        .control-group h3 { margin-top: 0; font-size: 1.1em; color: #333; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        select, input[type="text"], input[type="url"], input[type="number"], input[type="color"] {
+            width: calc(100% - 12px);
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        button:hover { background-color: #0056b3; }
+        .inline-inputs label { display: inline-block; margin-right: 5px; }
+        .inline-inputs input { width: auto; margin-right: 10px; }
+        @media (min-width: 768px) {
+            body { flex-direction: row; }
+            .photopea-container { width: 70%; height: 100vh; }
+            .controls { width: 30%; height: 100vh; overflow-y: auto; border-top: none; border-right: 1px solid #ccc; }
+        }
         .control-group { margin-bottom: 20px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background-color: #fff; }
         .control-group h3 { margin-top: 0; font-size: 1.1em; color: #333; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
@@ -40,6 +70,14 @@
 </head>
 <body>
 
+    <div class="photopea-container">
+        <button onclick="togglePhotopeaPreview()">Toggle Photopea/Preview</button>
+        <iframe id="photopeaEmbed" src="https://www.photopea.com" style="display: none;"></iframe>
+        <div class="preview-container">
+            <h4>Live Preview Area</h4>
+            <img id="previewImage" src="#" alt="Preview will appear here">
+        </div>
+    </div>
     <div class="controls">
         <h2>Photopea Controls</h2>
 
@@ -134,14 +172,6 @@
         </div>
     </div>
 
-    <div class="photopea-container">
-        <button onclick="togglePhotopeaPreview()">Toggle Photopea/Preview</button>
-        <div class="preview-container">
-            <h4>Live Preview Area</h4>
-            <img id="previewImage" src="#" alt="Preview will appear here">
-        </div>
-        <iframe id="photopeaEmbed" src="https://www.photopea.com" style="display: none;"></iframe>
-    </div>
 
     <script>
         const photopeaEmbed = document.getElementById('photopeaEmbed');
