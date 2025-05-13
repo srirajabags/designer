@@ -1,7 +1,7 @@
 {
   "name": "SRB Designer",
   "short_name": "SRB Design",
-  "start_url": "/",
+  "start_url": "/designer",
   "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#fff",
