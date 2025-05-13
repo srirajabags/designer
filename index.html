@@ -6,7 +6,14 @@
     <title>Photopea API Integration</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: sans-serif; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        body { font-family: sans-serif; margin: 0; height: 100vh; 
+            /* overflow: hidden; display: flex; flex-direction: column;  */
+        }
+        #app { display: none; width: 100%; flex-direction: column;}
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
         .photopea-container { display: flex; flex-direction: column; height: 50vh; }
         #photopeaEmbed { width: 100%; height: 100%; border: none; }
         .preview-container { padding: 10px; text-align: center; background-color: #e9ecef; height: 100%; display: flex; flex-direction: column; justify-content: center; }
@@ -38,7 +45,7 @@
         .inline-inputs label { display: inline-block; margin-right: 5px; }
         .inline-inputs input { width: auto; margin-right: 10px; }
         @media (min-width: 768px) {
-            body { flex-direction: row; }
+            #app { flex-direction: row; }
             .photopea-container { width: 70%; height: 100vh; }
             .controls { width: 30%; height: 100vh; overflow-y: auto; border-top: none; border-right: 1px solid #ccc; }
         }
@@ -70,119 +77,188 @@
     </style>
 </head>
 <body>
-
-    <div class="photopea-container">
-        <button onclick="togglePhotopeaPreview()">Toggle Photopea/Preview</button>
-        <iframe id="photopeaEmbed" src="https://www.photopea.com" style="display: none;"></iframe>
-        <div class="preview-container">
-            <h4>Live Preview Area</h4>
-            <img id="previewImage" src="#" alt="Preview will appear here">
-        </div>
-    </div>
-    <div class="controls">
-        <h2>Photopea Controls</h2>
-
-        <div class="control-group">
-            <h3>Project Template</h3>
-            <label for="projectTemplate">Choose Template:</label>
-            <select id="projectTemplate">
-                <!-- Options will be populated here -->
-                <option value="">-- Select Template --</option>
-                <option value="template1.psd">Template 1</option>
-                <!-- <option value="template2.psd">Template 2</option> -->
-                <!-- Add more options as needed -->
-            </select>
-            <button onclick="loadProjectTemplate()">Load Template</button>
-        </div>
-
-        <div class="control-group">
-            <h3>1. Background Layer</h3>
-            <label for="backgroundSelect">Choose Background:</label>
-            <select id="backgroundSelect">
-                <option value="">-- Select Background --</option>
-                <option value="https://via.placeholder.com/1920x1080/FF0000/FFFFFF?Text=Background1">Red Landscape</option>
-                <option value="https://via.placeholder.com/1920x1080/00FF00/000000?Text=Background2">Green Nature</option>
-                <option value="https://via.placeholder.com/1920x1080/0000FF/FFFFFF?Text=Background3">Blue Abstract</option>
-            </select>
-            <button onclick="setupBackground()">Set Background</button>
-        </div>
-
-        <div class="control-group">
-            <h3>2. Props/Graphics Layer</h3>
-            <label for="propSelect">Choose Prop:</label>
-            <select id="propSelect">
-                <option value="">-- Select Prop --</option>
-                <option value="https://via.placeholder.com/300x300/FFFF00/000000?Text=Prop1">Yellow Star</option>
-                <option value="https://via.placeholder.com/250x250/FF00FF/FFFFFF?Text=Prop2">Magenta Circle</option>
-            </select>
-            <label for="propX">X Position:</label>
-            <input type="number" id="propX" value="50">
-            <label for="propY">Y Position:</label>
-            <input type="number" id="propY" value="50">
-            <button onclick="addProp()">Add Prop</button>
-        </div>
-
-        <div class="control-group">
-            <h3>3. Logo Layer</h3>
-            <label for="logoUrl">Logo Image URL:</label>
-            <input type="url" id="logoUrl" placeholder="https://example.com/logo.png" value="https://via.placeholder.com/150x150/000000/FFFFFF?Text=LOGO">
-            <label for="logoX">X Position:</label>
-            <input type="number" id="logoX" value="700">
-            <label for="logoY">Y Position:</label>
-            <input type="number" id="logoY" value="50">
-            <button onclick="addLogo()">Add Logo</button>
-        </div>
-
-        <div class="control-group">
-            <h3>4. Personalised Text Data</h3>
-            <div>
-                <label for="fontSelect">Choose Font:</label>
-                <select id="fontSelect">
-                    <option value="Arial">Arial</option>
-                    <option value="Verdana">Verdana</option>
-                    <option value="Georgia">Georgia</option>
-                    <option value="Times New Roman">Times New Roman</option>
-                    <option value="Courier New">Courier New</option>
-                    <option value="Roboto">Roboto</option> <option value="Montserrat">Montserrat</option> <option value="Open Sans">Open Sans</option> </select>
+    <div id="app">
+        <div class="photopea-container">
+            <button onclick="togglePhotopeaPreview()">Toggle Photopea/Preview</button>
+            <iframe id="photopeaEmbed" src="https://www.photopea.com" style="display: none;"></iframe>
+            <div class="preview-container">
+                <h4>Live Preview Area</h4>
+                <img id="previewImage" src="#" alt="Preview will appear here">
             </div>
-            <div>
-                <label for="textColor">Text Color:</label>
-                <input type="color" id="textColor" value="#000000">
+        </div>
+        <div class="controls">
+            <h2>Photopea Controls</h2>
+
+            <div class="control-group">
+                <h3>Project Template</h3>
+                <label for="projectTemplate">Choose Template:</label>
+                <select id="projectTemplate">
+                    <!-- Options will be populated here -->
+                    <option value="">-- Select Template --</option>
+                    <option value="template1.psd">Template 1</option>
+                    <!-- <option value="template2.psd">Template 2</option> -->
+                    <!-- Add more options as needed -->
+                </select>
+                <button onclick="loadProjectTemplate()">Load Template</button>
             </div>
 
-            <label for="textName">Name:</label>
-            <input type="text" id="textName" value="John Doe">
-            <button onclick="addOrUpdateText('Name', document.getElementById('textName').value, 100, 50, 100)">Set Name</button>
+            <div class="control-group">
+                <h3>1. Background Layer</h3>
+                <label for="backgroundSelect">Choose Background:</label>
+                <select id="backgroundSelect">
+                    <option value="">-- Select Background --</option>
+                    <option value="https://via.placeholder.com/1920x1080/FF0000/FFFFFF?Text=Background1">Red Landscape</option>
+                    <option value="https://via.placeholder.com/1920x1080/00FF00/000000?Text=Background2">Green Nature</option>
+                    <option value="https://via.placeholder.com/1920x1080/0000FF/FFFFFF?Text=Background3">Blue Abstract</option>
+                </select>
+                <button onclick="setupBackground()">Set Background</button>
+            </div>
 
-            <label for="textTitle">Title:</label>
-            <input type="text" id="textTitle" value="Graphic Designer">
-            <button onclick="addOrUpdateText('Title', document.getElementById('textTitle').value, 70, 50, 220)">Set Title</button>
+            <div class="control-group">
+                <h3>2. Props/Graphics Layer</h3>
+                <label for="propSelect">Choose Prop:</label>
+                <select id="propSelect">
+                    <option value="">-- Select Prop --</option>
+                    <option value="https://via.placeholder.com/300x300/FFFF00/000000?Text=Prop1">Yellow Star</option>
+                    <option value="https://via.placeholder.com/250x250/FF00FF/FFFFFF?Text=Prop2">Magenta Circle</option>
+                </select>
+                <label for="propX">X Position:</label>
+                <input type="number" id="propX" value="50">
+                <label for="propY">Y Position:</label>
+                <input type="number" id="propY" value="50">
+                <button onclick="addProp()">Add Prop</button>
+            </div>
 
-            <label for="textCaption">Caption/Tagline:</label>
-            <input type="text" id="textCaption" value="Creating visuals that inspire.">
-            <button onclick="addOrUpdateText('Caption', document.getElementById('textCaption').value, 50, 50, 300)">Set Caption</button>
+            <div class="control-group">
+                <h3>3. Logo Layer</h3>
+                <label for="logoUrl">Logo Image URL:</label>
+                <input type="url" id="logoUrl" placeholder="https://example.com/logo.png" value="https://via.placeholder.com/150x150/000000/FFFFFF?Text=LOGO">
+                <label for="logoX">X Position:</label>
+                <input type="number" id="logoX" value="700">
+                <label for="logoY">Y Position:</label>
+                <input type="number" id="logoY" value="50">
+                <button onclick="addLogo()">Add Logo</button>
+            </div>
 
-            <label for="textAddress">Address:</label>
-            <input type="text" id="textAddress" value="123 Design St, Art City, AC 45678">
-            <button onclick="addOrUpdateText('Address', document.getElementById('textAddress').value, 40, 50, 380)">Set Address</button>
+            <div class="control-group">
+                <h3>4. Personalised Text Data</h3>
+                <div>
+                    <label for="fontSelect">Choose Font:</label>
+                    <select id="fontSelect">
+                        <option value="Arial">Arial</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Courier New">Courier New</option>
+                        <option value="Roboto">Roboto</option> <option value="Montserrat">Montserrat</option> <option value="Open Sans">Open Sans</option> </select>
+                </div>
+                <div>
+                    <label for="textColor">Text Color:</label>
+                    <input type="color" id="textColor" value="#000000">
+                </div>
 
-            <label for="textContact">Contact (Email/Phone):</label>
-            <input type="text" id="textContact" value="john.doe@example.com | (555) 123-4567">
-            <button onclick="addOrUpdateText('Contact', document.getElementById('textContact').value, 40, 50, 450)">Set Contact</button>
-        </div>
+                <label for="textName">Name:</label>
+                <input type="text" id="textName" value="John Doe">
+                <button onclick="addOrUpdateText('Name', document.getElementById('textName').value, 100, 50, 100)">Set Name</button>
 
-        <div class="control-group">
-            <h3>Export</h3>
-            <button onclick="exportToTIFF()">Export to TIFF</button>
+                <label for="textTitle">Title:</label>
+                <input type="text" id="textTitle" value="Graphic Designer">
+                <button onclick="addOrUpdateText('Title', document.getElementById('textTitle').value, 70, 50, 220)">Set Title</button>
+
+                <label for="textCaption">Caption/Tagline:</label>
+                <input type="text" id="textCaption" value="Creating visuals that inspire.">
+                <button onclick="addOrUpdateText('Caption', document.getElementById('textCaption').value, 50, 50, 300)">Set Caption</button>
+
+                <label for="textAddress">Address:</label>
+                <input type="text" id="textAddress" value="123 Design St, Art City, AC 45678">
+                <button onclick="addOrUpdateText('Address', document.getElementById('textAddress').value, 40, 50, 380)">Set Address</button>
+
+                <label for="textContact">Contact (Email/Phone):</label>
+                <input type="text" id="textContact" value="john.doe@example.com | (555) 123-4567">
+                <button onclick="addOrUpdateText('Contact', document.getElementById('textContact').value, 40, 50, 450)">Set Contact</button>
+            </div>
+
+            <div class="control-group">
+                <h3>Export</h3>
+                <button onclick="exportToTIFF()">Export to TIFF</button>
+            </div>
         </div>
     </div>
+
+    <div id="licensePrompt">
+        <h2>Enter License Key</h2>
+        <input id="licenseInput" placeholder="Paste your license token here" style="width: 300px; padding: 10px;" />
+        <br><br>
+        <button onclick="validateLicense()">Validate</button>
+        <div id="result"></div>
+      </div>
 
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js');
         }
     </script>
+    <script type="module">
+        import { jwtVerify } from 'https://cdn.skypack.dev/jose';
+    
+        const publicKeyPem = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAra6A0Rn0J6q38t5xBNlJ
+45AIXYmrHTOmYR1RHVC0L3lV7GEkMzJfcMgjRDf2CJI7qlUZQgCmA9yrWc9Ra79o
+zzpEvoJoSb9b2tSzBVeG+vNk98x9JiHEG3eIf9EZ7urYFd40Ni5GQ+nRP7xlcypZ
+AA4l/OqOy/7wDWlX/XmNyPMyjkkBLMJLLjSXjab9oz1EBuZ7YD/spBKAQDZBmgwq
+CeCaFvXOVhPhuas3yDHKDEGAdRZS75h09XvX+TYrm10yyB7Lp4PHmZn0nKTynbN1
+8nSUIfxyMoJw1h7tn7YOa9la5UTNBPCwmwWzxU/bexrO2cR9uC1AjyZ558zy0Vct
+vwIDAQAB
+-----END PUBLIC KEY-----`;
+    
+        async function validateLicense() {
+          const token = document.getElementById("licenseInput").value.trim();
+          const resultEl = document.getElementById("result");
+    
+          try {
+            // Convert PEM to CryptoKey
+            const publicKey = await window.crypto.subtle.importKey(
+              "spki",
+              pemToArrayBuffer(publicKeyPem),
+              {
+                name: "RSASSA-PKCS1-v1_5",
+                hash: "SHA-256"
+              },
+              false,
+              ["verify"]
+            );
+    
+            const { payload } = await jwtVerify(token, publicKey, {
+              algorithms: ["RS256"]
+            });
+    
+            const now = Math.floor(Date.now() / 1000);
+            if (payload.exp && payload.exp < now) throw new Error("License expired");
+    
+            // Show app
+            document.getElementById("licensePrompt").style.display = "none";
+            document.getElementById("app").style.display = "flex";
+          } catch (err) {
+            resultEl.textContent = `❌ Invalid license: ${err.message}`;
+            resultEl.style.color = "red";
+          }
+        }
+    
+        // PEM to ArrayBuffer converter
+        function pemToArrayBuffer(pem) {
+          const b64 = pem.replace(/-----.*-----/g, "").replace(/\s+/g, "");
+          const binary = atob(b64);
+          const buffer = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            buffer[i] = binary.charCodeAt(i);
+          }
+          return buffer.buffer;
+        }
+    
+        window.validateLicense = validateLicense;
+      </script>
     <script>
+
         function detectImageFormat(arrayBuffer) {
             const uint8 = new Uint8Array(arrayBuffer);
 
