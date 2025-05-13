@@ -168,8 +168,8 @@
         </div>
 
         <div class="control-group">
-            <h3>Preview</h3>
-            <button onclick="generatePreview()">Generate & Show Preview</button>
+            <h3>Export</h3>
+            <button onclick="exportToTIFF()">Export to TIFF</button>
         </div>
     </div>
 
@@ -179,6 +179,36 @@
         }
     </script>
     <script>
+        function detectImageFormat(arrayBuffer) {
+            const uint8 = new Uint8Array(arrayBuffer);
+
+            // PNG
+            const isPng = uint8[0] === 0x89 &&
+                            uint8[1] === 0x50 &&
+                            uint8[2] === 0x4E &&
+                            uint8[3] === 0x47 &&
+                            uint8[4] === 0x0D &&
+                            uint8[5] === 0x0A &&
+                            uint8[6] === 0x1A &&
+                            uint8[7] === 0x0A;
+
+            // TIFF - Little endian
+            const isTiffLE = uint8[0] === 0x49 &&
+                            uint8[1] === 0x49 &&
+                            uint8[2] === 0x2A &&
+                            uint8[3] === 0x00;
+
+            // TIFF - Big endian
+            const isTiffBE = uint8[0] === 0x4D &&
+                            uint8[1] === 0x4D &&
+                            uint8[2] === 0x00 &&
+                            uint8[3] === 0x2A;
+
+            if (isPng) return "png";
+            if (isTiffLE || isTiffBE) return "tiff";
+            return "Unknown";
+        }
+
         const photopeaEmbed = document.getElementById('photopeaEmbed');
         const previewImage = document.getElementById('previewImage');
         let photopeaReady = false;
@@ -497,6 +527,12 @@
         }
 
 
+        // Export to TIFF Function
+        function exportToTIFF() {
+            const script = `app.activeDocument.saveToOE("tiff");`;
+            runScript(script);
+        }
+
         // Preview Generation
         function generatePreview() {
             // Ask Photopea to export the current document as a PNG image data URL
@@ -514,15 +550,30 @@
             console.log("Message from Photopea:", event.data);
 
             if (event.data instanceof ArrayBuffer) { // Binary data for image
-                // Convert ArrayBuffer to Blob, then to Data URL
-                var blob = new Blob([event.data], { type: "image/png" }); // Or "image/jpeg" if you requested that
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    previewImage.src = e.target.result;
-                    previewImage.style.display = 'block';
-                };
-                reader.readAsDataURL(blob);
-                console.log("Preview image data received and processed.");
+                const detectedFormat = detectImageFormat(event.data);
+                console.log("Detected image format:", detectedFormat);
+                const blobType = detectedFormat ? `image/${detectedFormat}` : "image/png"; // Default to PNG if unknown
+                // Convert ArrayBuffer to Blob
+                var blob = new Blob([event.data], { type: blobType });
+                if (detectedFormat === "tiff") {
+                    // Download TIFF file
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'exported_document.tiff';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    console.log("TIFF image data received and downloaded.");
+                } else {
+                    // For PNG or other formats, display as preview
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImage.src = e.target.result;
+                        previewImage.style.display = 'block';
+                    };
+                    reader.readAsDataURL(blob);
+                    console.log("Preview image data received and processed.");
+                }
             } else if (typeof event.data === 'string') {
                 console.log("String message from Photopea:", event.data); // More generic log
 
