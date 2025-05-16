@@ -12,6 +12,12 @@
         #app { display: none; }
         .designs {
             display: flex;
+            flex-direction: row;
+        }
+        @media (max-width: 768px) {
+            .designs {
+                flex-direction: column; /* on mobile */
+            }
         }
         .photopea-container {
             display: none;
