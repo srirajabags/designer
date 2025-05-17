@@ -122,6 +122,7 @@
 
                     <button onclick="updateCustomerData()">Update Customer Data</button>
                     <button onclick="updatePreviews()">Update Previews</button>
+                    <button onclick="showPhotopeas()">Show Editors</button>
                 </div>
             </div>
         </div>
@@ -244,6 +245,12 @@ vwIDAQAB
     </script>
 
     <script>
+        function showPhotopeas() {
+            const photopeaContainers = document.querySelectorAll('.photopea-container');
+            photopeaContainers.forEach(container => {
+                container.style.display = 'block';
+            });
+        }
 
         // utility functions
         function detectImageFormat(arrayBuffer) {
