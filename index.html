@@ -115,10 +115,14 @@
                     <input type="text" id="address" placeholder="Enter address" />
                     <label for="number">Phone:</label>
                     <input type="text" id="number" placeholder="Enter phone number" />
-                    <label for="email">Email:</label>
-                    <input type="text" id="email" placeholder="Enter email address" />
+                    <label for="owner">Owner:</label>
+                    <input type="text" id="owner" placeholder="Enter owner name" />
                     <label for="tagline">Tagline:</label>
                     <input type="text" id="tagline" placeholder="Enter tagline" />
+                    <label for="image">Image:</label>
+                    <input type="file" id="image" accept="image/*" />
+                    <br>
+                    <br>
 
                     <button onclick="updateCustomerData()">Update Customer Data</button>
                     <button onclick="updatePreviews()">Update Previews</button>
@@ -245,13 +249,6 @@ vwIDAQAB
     </script>
 
     <script>
-        function showPhotopeas() {
-            const photopeaContainers = document.querySelectorAll('.photopea-container');
-            photopeaContainers.forEach(container => {
-                container.style.display = 'block';
-            });
-        }
-
         // utility functions
         function detectImageFormat(arrayBuffer) {
             const uint8 = new Uint8Array(arrayBuffer);
@@ -296,10 +293,6 @@ vwIDAQAB
             })
         }
 
-        async function openPSDFile(psdFilename) {
-            const psdBuffer = await getFileBuffer(`${psdFilename}`);
-            await runScript(psdBuffer);
-        }
 
         class PhotopeaPoweredDesign {
             constructor({
@@ -308,9 +301,11 @@ vwIDAQAB
                 customerData
             }) {
                 this.documentId = documentId;
-                const { templateFile, templateRules } = template;
+                const { templateFile, templateRules, templateFontFiles, templateScriptHandler } = template;
                 this.templateFile = templateFile;
                 this.templateRules = templateRules;
+                this.templateFontFiles = templateFontFiles;
+                this.templateScriptHandler = templateScriptHandler;
                 this.customerData = customerData;
                 this.rootContainer = document.getElementById(documentId);
                 
@@ -355,6 +350,7 @@ vwIDAQAB
                 this.pp.style.border = "none";
                 this.pp.style.display = "block";
                 this.pp.onclick="event.stopPropagation()"
+                this.pp.allow="clipboard-read; clipboard-write"
 
                 // add the iframe to the photopea-container div under rootContainer
                 this.photopeaContainer.appendChild(this.pp);
@@ -398,12 +394,26 @@ vwIDAQAB
                 console.log("Photopea is ready.");
                 // Open the template file
                 await this.runScript(await getFileBuffer(this.templateFile));
+                await this.loadFonts();
                 // Update the customer data
                 await this.updateCustomerData();
             }
+
+            async loadFonts() {
+                if (this.templateFontFiles) {
+                    for (const fontFile of this.templateFontFiles) {
+                        await this.runScript(await getFileBuffer(fontFile));
+                    }
+                }
+            }
+
             async updateCustomerData(customerDataUpdates) {
                 if (customerDataUpdates) {
                     this.customerData = {...this.customerData, ...customerDataUpdates};
+                }
+                if (this.templateScriptHandler) {
+                    await this.runScript(this.templateScriptHandler(this.customerData));
+                    return
                 }
                 for (const [key, value] of Object.entries(this.customerData)) {
                     if (value) {
@@ -420,6 +430,16 @@ vwIDAQAB
                     }
                 }
             }
+
+            async updateCustomerImages(imageDataURL) {
+                // Update the image layer with the new image data URL
+                console.log(imageDataURL);
+                await this.runScript(`
+                    app.open("${imageDataURL}", undefined, true);
+                    app.activeDocument.activeLayer.name = "customer_image";
+                `);
+            }
+
             async runScript(script) {
                 return new Promise((resolve, reject) => {
                     if (!this.pp) {
@@ -542,7 +562,7 @@ vwIDAQAB
                             maxHeight: 500,
                         },
                     },
-                ]
+                ],
             },
             {
                 templateFile: 'template2.psd',
@@ -555,7 +575,43 @@ vwIDAQAB
                             maxHeight: 500,
                         },
                     },
-                ]
+                ],
+                templateFontFiles: [
+                    "Ponnala.otf",
+                ],
+                templateScriptHandler: (customerData) => {
+                    const { name, number, owner } = customerData;
+                    console.log(name, number, owner);
+                    return `
+                    const customerData = JSON.parse('${JSON.stringify(customerData)}');
+                    console.log("customerData:", customerData);
+
+                    var a = app;
+                    var aD = a.activeDocument;
+                    var aL = aD.artLayers;
+
+                    var nameLayer = aL.getByName("name");
+                    var numberLayer = aL.getByName("number");
+                    var ownerLayer = aL.getByName("owner");
+
+                    // name layer script
+                    nameLayer.textItem.contents = "${name || "Placeholder"}";
+
+                    var maxWidth = 3300;
+                    var maxHeight = 500;
+
+                    var textSize = nameLayer.textItem.size.value;
+                    var textWidth = nameLayer.bounds[2] - nameLayer.bounds[0];
+                    var textHeight = nameLayer.bounds[3] - nameLayer.bounds[1];
+                    var scaleFactor = Math.min(maxWidth / textWidth, maxHeight / textHeight);   
+                    nameLayer.resize(scaleFactor * 100, scaleFactor * 100, AnchorPosition.MIDDLECENTER);
+                    nameLayer.textItem.size = textSize * scaleFactor;
+
+                    // other layers script
+                    numberLayer.textItem.contents = "${number || "Placeholder"}";
+                    ownerLayer.textItem.contents = "${owner || "కొండలరావు"}";
+                `
+                }
             }
         ];
 
@@ -574,25 +630,60 @@ vwIDAQAB
 
         const designs = [template1, template2];
 
+        // button click handlers
         async function updateCustomerData() {
+            // 1. text data handling
             const customerDataUpdates = {};
             // Call updateCustomerData method of all template instances only with non-empty values
-            ["name", "address", "number", "email", "tagline"].forEach(field => {
+            ["name", "address", "number", "owner", "tagline"].forEach(field => {
                 const value = document.getElementById(field).value;
                 if (value) {
                     customerDataUpdates[field] = value;
                 }
             });
+            
+
+            // 2. images handling
+            const fileInput = document.getElementById("image");
+
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select an image file first.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+                const imageDataURL = e.target.result;
+                await Promise.all(designs.map(template => {
+                    template.updateCustomerImages(imageDataURL);
+                }));
+            };
+
+            reader.readAsDataURL(file);
+
+            // 3. call the update methods of all the templates
             await Promise.all(designs.map(template => {
                 template.updateCustomerData(customerDataUpdates);
             }))
         }
 
-        async function updatePreviews () {
+        async function updatePreviews() {
             await Promise.all(designs.map(template => {
                 template.updatePreview();
             }))
         }
+
+        function showPhotopeas() {
+            const photopeaContainers = document.querySelectorAll('.photopea-container');
+            photopeaContainers.forEach(container => {
+                container.style.display = 'block';
+            });
+        }
+
+        // on load
+
+        let imageDataURL = null;
     </script>
 
 </body>
