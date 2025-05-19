@@ -521,7 +521,7 @@ vwIDAQAB
                         // Move the layer to center it at the target position
                         layer.translate(deltaX, deltaY);
                     `);
-                    await this.updatePreview
+                    // await this.updatePreview()
                     return
                 }
                 for (const [key, value] of Object.entries(this.customerData)) {
@@ -566,7 +566,7 @@ vwIDAQAB
                             window.removeEventListener("message", doneListener);
                             resolve();
                             console.log("calling", event.data)
-                            // await this.updatePreview();
+                            await this.updatePreview();
                         }
                     }
                     window.addEventListener("message", doneListener);
