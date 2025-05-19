@@ -120,7 +120,8 @@
                     <label for="tagline">Tagline:</label>
                     <input type="text" id="tagline" placeholder="Enter tagline" />
                     <label for="image">Image:</label>
-                    <input type="file" id="image" accept="image/*" />
+                    <input type="file" id="image" accept="image/*"/>
+                    <div id="images"></div>
                     <br>
                     <br>
 
@@ -131,10 +132,8 @@
             </div>
         </div>
         <div class="designs">
-            <div id="img01" class="photopea-powered-image-container">
-            </div>
-            <div id="img02" class="photopea-powered-image-container">
-            </div>
+            <div id="img01" class="photopea-powered-image-container"></div>
+            <div id="img02" class="photopea-powered-image-container"></div>
         </div>
         
     </div>
@@ -298,18 +297,44 @@ vwIDAQAB
             constructor({
                 documentId,
                 template,
-                customerData
+                customerData,
+                imageDataURL,
+                photopeaConfig
             }) {
+                this.photopeaConfig = photopeaConfig;
                 this.documentId = documentId;
-                const { templateFile, templateRules, templateFontFiles, templateScriptHandler } = template;
-                this.templateFile = templateFile;
-                this.templateRules = templateRules;
-                this.templateFontFiles = templateFontFiles;
-                this.templateScriptHandler = templateScriptHandler;
-                this.customerData = customerData;
+                if (imageDataURL) {
+                    this.imageDataURL = imageDataURL;
+                } else {
+                    const { templateFile, templateRules, templateFontFiles, templateScriptHandler } = template;
+                    this.templateFile = templateFile;
+                    this.templateRules = templateRules;
+                    this.templateFontFiles = templateFontFiles;
+                    this.templateScriptHandler = templateScriptHandler;
+                    this.customerData = customerData;
+                }
                 this.rootContainer = document.getElementById(documentId);
-                
+            
                 this.initPromise = this.init();
+            }
+            async destroy() {
+                if (this.previewImage) {
+                    this.previewImage.remove();
+                    this.previewImage = null;
+                }
+
+                if (this.pp) {
+                    this.pp.remove();
+                    this.pp = null;
+                }
+                if (this.photopeaContainer) {
+                    this.photopeaContainer.remove();
+                    this.photopeaContainer = null;
+                }
+                if (this.previewContainer) {
+                    this.previewContainer.remove();
+                    this.previewContainer = null;
+                }
             }
             async init() {
                 this.initPhotopea();
@@ -342,9 +367,11 @@ vwIDAQAB
                     // Toggle the visibility of the preview container
                     this.photopeaContainer.style.display = window.getComputedStyle(this.photopeaContainer).display === 'none' ? 'block' : 'none';
                 }
+
+                const photopeaConfig = this.photopeaConfig || {};
                 
                 this.pp = document.createElement('iframe');
-                this.pp.src = "https://www.photopea.com";
+                this.pp.src = `https://www.photopea.com#${encodeURIComponent(JSON.stringify(photopeaConfig))}`;
                 this.pp.style.width = "100%";
                 this.pp.style.height = "90vh";
                 this.pp.style.border = "none";
@@ -392,11 +419,40 @@ vwIDAQAB
 
             async onPhotopeaLoad() {
                 console.log("Photopea is ready.");
-                // Open the template file
-                await this.runScript(await getFileBuffer(this.templateFile));
-                await this.loadFonts();
-                // Update the customer data
-                await this.updateCustomerData();
+                window.addEventListener("message", e => {
+                    if (event.origin !== "https://www.photopea.com" || event.source !== this.pp.contentWindow) return; // security check
+                    if (event.data instanceof ArrayBuffer) { // Binary data for image
+                        const detectedFormat = detectImageFormat(event.data);
+                        console.log("Detected image format:", detectedFormat);
+                        const blobType = detectedFormat ? `image/${detectedFormat}` : "image/png"; // Default to PNG if unknown
+                        // Convert ArrayBuffer to Blob
+                        var blob = new Blob([event.data], { type: blobType });
+                        if (!["tiff"].includes(detectedFormat)) {
+                            // For PNG or other formats, display as preview
+                            var reader = new FileReader();
+                            reader.onload = (e) => {
+                                // console.log(e.target.result);
+                                this.previewImage.src = e.target.result;
+                                this.previewImage.style.display = 'block';
+                            };
+                            reader.readAsDataURL(blob);
+                            console.log("Preview image data received and processed.");
+                        }
+                    }
+                });
+                if (this.templateFile) {
+                   // Open the template file
+                    await this.runScript(await getFileBuffer(this.templateFile));
+                    await this.loadFonts();
+                    // Update the customer data
+                    await this.updateCustomerData();
+                } else if (this.imageDataURL) {
+                    // Open the image file
+                    await this.runScript(`
+                        app.open("${this.imageDataURL}");
+                    `);
+                }
+                
             }
 
             async loadFonts() {
@@ -413,6 +469,59 @@ vwIDAQAB
                 }
                 if (this.templateScriptHandler) {
                     await this.runScript(this.templateScriptHandler(this.customerData));
+                    await this.runScript(`
+                        var imageLayer = app.activeDocument.layers.getByName("customer_image");
+                        if (imageLayer) {
+                            imageLayer.remove();
+                        }
+                    `);
+                    await this.updateCustomerImages(this.customerData.image);
+                    await this.runScript(`
+                        var imageLayer = app.activeDocument.layers.getByName("image");
+                        if (imageLayer) {
+                            imageLayer.name = "customer_image";
+                        }
+                    `);
+                    await this.runScript(`
+                        // ==== Configuration ====
+                        // Bounding box dimensions
+                        var maxWidth = 3000;
+                        var maxHeight = 1500;
+
+                        // Target center position (in pixels, relative to document)
+                        var targetCenterX = 2300;
+                        var targetCenterY = 2500;
+
+                        // ==== Resize and Center Layer ====
+                        var doc = app.activeDocument;
+                        var layer = doc.artLayers.getByName("customer_image");
+
+                        // Get original bounds
+                        var b = layer.bounds;  // [left, top, right, bottom]
+                        var origW = b[2] - b[0];
+                        var origH = b[3] - b[1];
+
+                        // Calculate scaling to fit in bounds (preserving aspect ratio)
+                        var scale = Math.min(maxWidth / origW, maxHeight / origH) * 100;
+                        layer.resize(scale, scale);
+
+                        // Get new bounds after resizing
+                        b = layer.bounds;
+                        var newW = b[2] - b[0];
+                        var newH = b[3] - b[1];
+
+                        // Calculate current center
+                        var currentCenterX = (b[0] + b[2]) / 2;
+                        var currentCenterY = (b[1] + b[3]) / 2;
+
+                        // Calculate move offset
+                        var deltaX = targetCenterX - currentCenterX;
+                        var deltaY = targetCenterY - currentCenterY;
+
+                        // Move the layer to center it at the target position
+                        layer.translate(deltaX, deltaY);
+                    `);
+                    await this.updatePreview
                     return
                 }
                 for (const [key, value] of Object.entries(this.customerData)) {
@@ -436,7 +545,12 @@ vwIDAQAB
                 console.log(imageDataURL);
                 await this.runScript(`
                     app.open("${imageDataURL}", undefined, true);
-                    app.activeDocument.activeLayer.name = "customer_image";
+                `);
+                await this.runScript(`
+                    var imageLayer = app.activeDocument.layers.getByName("image");
+                    if (imageLayer) {
+                        imageLayer.name = "customer_image";
+                    }
                 `);
             }
 
@@ -445,14 +559,14 @@ vwIDAQAB
                     if (!this.pp) {
                         reject(new Error("Photopea iframe not initialized."));
                     }
-                    const doneListener = (event) => {
+                    const doneListener = async (event) => {
                         if (event.origin !== "https://www.photopea.com" || event.source !== this.pp.contentWindow) return; // security check
                         if (event.data === "done") {
                             console.log(`${this.documentId}: Photopea script execution finished.`);
                             window.removeEventListener("message", doneListener);
                             resolve();
                             console.log("calling", event.data)
-                            this.updatePreview();
+                            // await this.updatePreview();
                         }
                     }
                     window.addEventListener("message", doneListener);
@@ -478,7 +592,7 @@ vwIDAQAB
                                 // For PNG or other formats, display as preview
                                 var reader = new FileReader();
                                 reader.onload = (e) => {
-                                    console.log(e.target.result);
+                                    // console.log(e.target.result);
                                     this.previewImage.src = e.target.result;
                                     this.previewImage.style.display = 'block';
                                 };
@@ -581,7 +695,7 @@ vwIDAQAB
                 ],
                 templateScriptHandler: (customerData) => {
                     const { name, number, owner } = customerData;
-                    console.log(name, number, owner);
+                    // console.log(name, number, owner, image);
                     return `
                     const customerData = JSON.parse('${JSON.stringify(customerData)}');
                     console.log("customerData:", customerData);
@@ -620,15 +734,18 @@ vwIDAQAB
             template: templates[1],
             customerData: {}
         })
-        template2 = new PhotopeaPoweredDesign({
-            documentId: 'img02',
-            template: templates[0],
-            customerData: {}
-        })
+        // template2 = new PhotopeaPoweredDesign({
+        //     documentId: 'img02',
+        //     template: templates[0],
+        //     customerData: {}
+        // })
         window.template1 = template1;
-        window.template2 = template2;
+        // window.template2 = template2;
 
-        const designs = [template1, template2];
+        const designs = [
+            template1, 
+            // template2
+        ];
 
         // button click handlers
         async function updateCustomerData() {
@@ -644,24 +761,15 @@ vwIDAQAB
             
 
             // 2. images handling
-            const fileInput = document.getElementById("image");
-
-            const file = fileInput.files[0];
-            if (!file) {
-                alert("Please select an image file first.");
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = async function (e) {
-                const imageDataURL = e.target.result;
-                await Promise.all(designs.map(template => {
-                    template.updateCustomerImages(imageDataURL);
-                }));
-            };
-
-            reader.readAsDataURL(file);
-
+            const images = document.getElementById('images');
+            const imageDataURL = images.querySelector('img') ? images.querySelector('img').src : null;
+            customerDataUpdates['image'] = imageDataURL;
+            // if (imageDataURL) {
+            //     await Promise.all(designs.map(template => {
+            //         template.updateCustomerImages(imageDataURL);
+            //     }));
+            // }
+            
             // 3. call the update methods of all the templates
             await Promise.all(designs.map(template => {
                 template.updateCustomerData(customerDataUpdates);
@@ -681,9 +789,45 @@ vwIDAQAB
             });
         }
 
-        // on load
+        // event listeners
+        const fileInput = document.getElementById('image');
+        const imagesContainer = document.getElementById('images');
+        fileInput.addEventListener('change', () => {
+            imagesContainer.innerHTML = '';
+            // const files = [fileInput.files[0]];
+            const files = fileInput.files;
+            Array.from(files).forEach(file => {
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        imageDataURL = e.target.result;
+                        const imageDiv = document.createElement('div');
+                        imageDiv.className = "photopea-powered-image-container";
+                        const hasher = (content) => crypto.subtle.digest("SHA-256", new TextEncoder().encode(content)).then(buf => console.log([...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('')));
+                        imageDiv.id = hasher(file.name);
+                        imagesContainer.appendChild(imageDiv);
 
-        let imageDataURL = null;
+                        new PhotopeaPoweredDesign({
+                            documentId: imageDiv.id,
+                            imageDataURL,
+                            photopeaConfig: {
+                                environment: {
+                                    customIO: {
+                                        save: "app.activeDocument.saveToOE('png');",
+                                        exportAs: true
+                                    }
+                                }
+                            }
+                        })
+
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Please select a valid image file.');
+                }
+            })
+            
+        });
     </script>
 
 </body>
